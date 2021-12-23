@@ -1,3 +1,5 @@
+use rand::random;
+
 pub const SCREEN_WIDTH: usize = 64;
 pub const SCREEN_HEIGHT: usize = 32;
 
@@ -157,7 +159,67 @@ impl CPU {
             (4, _, _, _) => self.skip_neq_nn(digits.1, opcode),
 
             // Skip a line if VX == VY
-            (5, _, _, _) => self.skip_eq_vy(digits.1, digits.2),
+            (5, _, _, 0) => self.skip_eq_vy(digits.1, digits.2),
+
+            // Set VX to NN
+            (6, _, _, _) => self.set_nn(digits.1, opcode),
+
+            // Increment VX by NN
+            (7, _, _, _) => self.incr_nn(digits.1, opcode),
+
+            // Set VX to VY
+            (8, _, _, 0) => self.set_vy(digits.1, digits.2),
+
+            // Apply bitwise OR to VX using VY
+            (8, _, _, 1) => self.or(digits.1, digits.2),
+
+            // Apply bitwise AND to VX using VY
+            (8, _, _, 2) => self.and(digits.1, digits.2),
+
+            // Apply bitwise XOR to VX using VY
+            (8, _, _, 3) => self.xor(digits.1, digits.2),
+
+            // Increment VX by VY
+            (8, _, _, 4) => self.incr_vy(digits.1, digits.2),
+
+            // Decrease VX by VY
+            (8, _, _, 5) => self.decr_vy(digits.1, digits.2),
+
+            // Binary right shift VX
+            (8, _, _, 6) => self.brs(digits.1),
+
+            // Set VX to VY - VX
+            (8, _, _, 7) => self.sub_vx(digits.1, digits.2),
+
+            // Binary left shift VX
+            (8, _, _, 8) => self.bls(digits.1),
+
+            // Skip a line if VX != VY
+            (9, _, _, 0) => self.skip_neq_vy(digits.1, digits.2),
+
+            // Set value of I register to value in opcode
+            (0xA, _, _, _) => self.seti(opcode),
+
+            // Set program counter to V0 + value in opcode
+            (0xB, _, _, _) => self.setpc(opcode),
+
+            // Set VX to random number & value in opcode
+            (0xC, _, _, _) => self.rand(digits.1, opcode),
+
+            // Draw sprite
+            (0xD, _, _, _) => self.draw(digits.1, digits.2, digits.3),
+
+            // Skip if key pressed
+            (0xE, _, 9, 0xE) => self.skip_kp(digits.1),
+
+            // Skip if key not pressed
+            (0xE, _, 0xA, 1) => self.skip_knp(digits.1),
+
+            // Set VX to delay timer
+            (0xF, _, 0, 7) => self.vx_to_dt(digits.1),
+
+            // Wait for key press
+            (0xF, _, 0, 0xA) => self.wait(digits.1),
 
             (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", opcode),
         }
@@ -209,5 +271,182 @@ impl CPU {
             self.program_counter += 2
         }
     }
+
+    // Sets VX to NN
+    fn set_nn(&mut self, x: u16, opcode: u16) {
+        let new_value = (opcode & 0xFF) as u8;
+        self.v_registers[x as usize] = new_value;
+    }
+
+    // Increments VX by NN
+    fn incr_nn(&mut self, x: u16, opcode: u16) {
+        let increment_by = (opcode & 0xFF) as u8;
+        self.v_registers[x as usize] =  self.v_registers[x as usize].wrapping_add(increment_by);
+    }
+
+    // Sets VX to VY
+    fn set_vy(&mut self, x: u16, y: u16) {
+        self.v_registers[x as usize] = self.v_registers[y as usize]
+    }
+
+    // Applies bitwise OR to VX using VY
+    fn or(&mut self, x: u16, y: u16) {
+        self.v_registers[x as usize] |= self.v_registers[y as usize];
+    }
+
+    // Applies bitwise AND to VX using VY
+    fn and(&mut self, x: u16, y: u16) {
+        self.v_registers[x as usize] &= self.v_registers[y as usize];
+    }
+
+    // Applies bitwise XOR to VX using VY
+    fn xor(&mut self, x: u16, y: u16) {
+        self.v_registers[x as usize] ^= self.v_registers[y as usize];
+    }
+
+    // Increments VX by VY
+    fn incr_vy(&mut self, x: u16, y: u16) {
+        let (new_vx, carry) = self.v_registers[x as usize].overflowing_add(self.v_registers[y as usize]);
+        let new_vf = if carry { 1 } else { 0 };
+
+        self.v_registers[x as usize] = new_vx;
+        self.v_registers[0xF] = new_vf;
+    }
     
+    // Decreases VX by VY
+    fn decr_vy(&mut self, x: u16, y: u16) {
+        let (new_vx, borrow) = self.v_registers[x as usize].overflowing_sub(self.v_registers[y as usize]);
+        let new_vf = if borrow { 0 } else { 1 };
+
+        self.v_registers[x as usize] = new_vx;
+        self.v_registers[0xF] = new_vf;
+    }
+
+    // Binary right shifts VX
+    fn brs(&mut self, x: u16) {
+        let lsb = self.v_registers[x as usize] & 1;
+        self.v_registers[x as usize] >>= 1;
+        self.v_registers[0xF] = lsb;
+    }
+
+    // Sets VX to be VY - VX
+    fn sub_vx(&mut self, x: u16, y: u16) {
+        let (new_vx, borrow) = self.v_registers[y as usize].overflowing_sub(self.v_registers[x as usize]);
+        let new_vf = if borrow { 0 } else { 1 };
+
+        self.v_registers[x as usize] = new_vx;
+        self.v_registers[0xF] = new_vf;
+    }
+
+    // Binary left shifts VX
+    fn bls(&mut self, x: u16) {
+        let msb = (self.v_registers[x as usize] >> 7) & 1;
+        self.v_registers[x as usize] <<= 1;
+        self.v_registers[0xF] = msb;
+    }
+
+    // Skips a line if VX != VY
+    fn skip_neq_vy(&mut self, x: u16, y: u16) {
+        if self.v_registers[x as usize] != self.v_registers[y as usize]{
+            self.program_counter += 2
+        }
+    }
+
+    // Sets the I register to be the value encoded in the opcode
+    fn seti(&mut self, opcode: u16) {
+        let next_i = opcode & 0xFFF;
+        self.i_register = next_i;
+    }
+
+    // Sets the program counter to V0 + value in opcode
+    fn setpc(&mut self, opcode: u16) {
+        let opcode_value = opcode & 0xFFF;
+        self.program_counter = (self.v_registers[0] as u16) + opcode_value;
+    }
+
+    // Sets VX to be random number & value in opcode
+    fn rand(&mut self, x: u16, opcode: u16) {
+        let opcode_value = (opcode & 0xFF) as u8;
+        let rng: u8 = random();
+        self.v_registers[x as usize] = rng & opcode_value;
+    }
+
+    // Draws a sprite
+    fn draw(&mut self, x: u16, y: u16, z: u16) {
+        // Get x, y coords of the sprite
+        let x_coord = self.v_registers[x as usize] as u16;
+        let y_coord = self.v_registers[y as usize] as u16;
+
+        // Get height of sprite
+        let num_rows = z;
+
+        // Keeps track of if any pixels are flipped
+        let mut flipped = false;
+
+        // Iterates over all the rows in the sprite
+
+        for y_line in 0..num_rows {
+            // Get rows memory address
+            let addr =  self.i_register + y_line as u16;
+            let pixels = self.ram[addr as usize];
+
+            // Iterates through each column in the row
+            for x_line in 0..8 {
+                // Use a mask to get the current pixels bit, only flip it if it is a 1
+                if (pixels & (0b10000000 >> x_line)) != 0 {
+                    let sx = (x_coord + x_line) as usize % SCREEN_WIDTH;
+                    let sy = (y_coord + y_line) as usize % SCREEN_HEIGHT;
+
+                    let index = sx + SCREEN_WIDTH * sy;
+
+                    flipped |= self.screen[index];
+                    self.screen[index] ^= true;
+                }
+            }
+        }
+
+        if flipped {
+            self.v_registers[0xF] = 1;
+        } else {
+            self.v_registers[0xF] = 0;
+        }
+
+    }
+
+    // Skips if a key is pressed
+    fn skip_kp(&mut self, x: u16) {
+        let key = self.v_registers[x as usize];
+        if self.keypad[key as usize] {
+            self.program_counter += 2
+        }
+    }
+
+    // Skips if a key is not pressed
+    fn skip_knp(&mut self, x: u16) {
+        let key = self.v_registers[x as usize];
+        if !self.keypad[key as usize] {
+            self.program_counter += 2
+        }
+    }
+
+    // Sets the value of VX to the delay counter
+    fn vx_to_dt(&mut self, x: u16) {
+        self.v_registers[x as usize] = self.delay_timer;
+    }
+
+    // Waits for a key to be pressed
+    fn wait(&mut self, x: u16) {
+        let mut pressed = false;
+        for i in 0..self.keypad.len() {
+            if self.keypad[i] {
+                self.v_registers[x as usize] = i as u8;
+                pressed = true;
+                break;
+            }
+        }
+
+        if !pressed {
+            self.program_counter -= 2;
+        }
+    }
 }
