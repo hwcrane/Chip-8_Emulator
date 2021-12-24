@@ -89,6 +89,22 @@ impl CPU {
         self.stack[self.stack_pointer as usize]
     }
 
+    // Get display
+    pub fn get_display(&self) -> &[bool] {
+        &self.screen
+    }
+
+    pub fn keypress(&mut self, index: usize, pressed: bool) {
+        self.keypad[index] = pressed;
+    }
+
+    // Loads game rom into ram
+    pub fn load_rom(&mut self, data: &[u8]) {
+        let start = START_ADDRESS as usize;
+        let end = (START_ADDRESS as usize) + data.len();
+        self.ram[start..end].copy_from_slice(data);
+    }
+    
     pub fn tick_timers(&mut self) {
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
@@ -220,6 +236,27 @@ impl CPU {
 
             // Wait for key press
             (0xF, _, 0, 0xA) => self.wait(digits.1),
+
+            // Set the delay timer to VX
+            (0xF, _, 1, 5) => self.dt_to_vx(digits.1),
+
+            // Set the sound timer to VX
+            (0xF, _, 1, 8) => self.st_to_vx(digits.1),
+
+            // Increment the I register by VX
+            (0xF, _, 1, 0xE) => self.incr_i(digits.1),
+
+            // Set I register to font address
+            (0xF, _, 2, 9) => self.seti_font(digits.1),
+
+            // Store the Binary coded decimal of VX in ram
+            (0xF, _, 3, 3) => self.bcd(digits.1),
+
+            // Store V0 -> VX in ram
+            (0xF, _, 5, 5) => self.store_v(digits.1),
+            
+            // Load V0 -> VX from ram
+            (0xF, _, 6, 5) => self.load_v(digits.1),
 
             (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", opcode),
         }
@@ -447,6 +484,57 @@ impl CPU {
 
         if !pressed {
             self.program_counter -= 2;
+        }
+    }
+
+    // Sets the delay timer to VX
+    fn dt_to_vx(&mut self, x: u16) {
+        self.delay_timer = self.v_registers[x as usize];
+    }
+
+    // Sets the sound timer to VX
+    fn st_to_vx(&mut self, x: u16) {
+        self.sound_timer = self.v_registers[x as usize];
+    }
+
+    // Increments the I register by VX
+    fn incr_i(&mut self, x: u16) {
+        let increment_by = self.v_registers[x as usize] as u16;
+        self.i_register = self.i_register.wrapping_add(increment_by);
+    }
+
+    // Sets the I register to a font address
+    fn seti_font(&mut self, x: u16) {
+        let number = self.v_registers[x as usize] as u16;
+        self.i_register = number * 5;
+    }
+
+    // Stores the Binary Coded decimal of VX in ram
+    fn bcd(&mut self, x: u16) {
+        let vx = self.v_registers[x as usize] as f32;
+
+        let hundreds = (vx / 100.).floor() as u8;
+        let tens = (vx / 10.).floor() as u8;
+        let units = (vx /10.).floor() as u8;
+
+        self.ram[self.i_register as usize] = hundreds;
+        self.ram[(self.i_register + 1) as usize] = tens;
+        self.ram[(self.i_register + 2) as usize] = units;
+    }
+
+    // Stores V0 -> VX in ram
+    fn store_v(&mut self, x: u16) {
+        let i = self.i_register as usize;
+        for index in 0..=x as usize {
+            self.ram[i + index] = self.v_registers[index];
+        }
+    } 
+
+    // Loads V0 -> VX from ram
+    fn load_v(&mut self, x: u16) {
+        let i = self.i_register as usize;
+        for index in 0..=x as usize {
+            self.v_registers[index] = self.ram[i + index];
         }
     }
 }
