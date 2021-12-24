@@ -2,20 +2,19 @@ import init, * as wasm from "./wasm.js";
 
 const WIDTH = 64;
 const HEIGHT = 32;
-const SCALE = 15;
+let SCALE = Math.floor(window.innerWidth / 80) - Math.floor(window.innerWidth / 800);
 const TICKS_PER_FRAME = 8;
 let anim_frame = 0;
 
 const canvas = document.getElementById("canvas");
 canvas.width = WIDTH * SCALE;
 canvas.height = HEIGHT * SCALE;
-
 const ctx = canvas.getContext("2d");
 ctx.fillStyle = "black";
 ctx.fillRect(0, 0, WIDTH * SCALE, HEIGHT * SCALE);
-
 const roms = document.getElementById("roms");
 const start = document.getElementById("start");
+
 async function run() {
     await init();
     let chip8 = new wasm.CPUWasm();
@@ -68,3 +67,12 @@ function mainloop(chip8) {
 }
 
 run().catch(console.error);
+
+window.addEventListener("resize", function(event) {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, WIDTH * SCALE, HEIGHT * SCALE);
+
+    SCALE = Math.floor(window.innerWidth / 80) - Math.floor(window.innerWidth / 800);
+    canvas.width = WIDTH * SCALE;
+    canvas.height = HEIGHT * SCALE;
+})

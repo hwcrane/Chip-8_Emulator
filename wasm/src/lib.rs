@@ -74,6 +74,11 @@ impl CPUWasm {
             }
         }
     }
+
+    #[wasm_bindgen]
+    pub fn button_press(&mut self, key: usize, pressed: bool) {
+        self.chip8.keypress(key, pressed);
+    }
 }
 
 fn convert_keycode(key: &str) -> Option<usize> {

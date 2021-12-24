@@ -29,6 +29,11 @@ export class CPUWasm {
 * @param {number} scale
 */
   draw_screen(scale: number): void;
+/**
+* @param {number} key
+* @param {boolean} pressed
+*/
+  button_press(key: number, pressed: boolean): void;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -43,6 +48,7 @@ export interface InitOutput {
   readonly cpuwasm_keypress: (a: number, b: number, c: number) => void;
   readonly cpuwasm_load_rom: (a: number, b: number) => void;
   readonly cpuwasm_draw_screen: (a: number, b: number) => void;
+  readonly cpuwasm_button_press: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number) => number;
   readonly __wbindgen_exn_store: (a: number) => void;

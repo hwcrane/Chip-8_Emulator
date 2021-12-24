@@ -251,6 +251,13 @@ export class CPUWasm {
     draw_screen(scale) {
         wasm.cpuwasm_draw_screen(this.ptr, scale);
     }
+    /**
+    * @param {number} key
+    * @param {boolean} pressed
+    */
+    button_press(key, pressed) {
+        wasm.cpuwasm_button_press(this.ptr, key, pressed);
+    }
 }
 
 async function load(module, imports) {
