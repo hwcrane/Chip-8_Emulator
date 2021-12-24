@@ -75,6 +75,7 @@ impl CPU {
         self.keypad = [false; NUM_KEYS];
         self.delay_timer = 0;
         self.sound_timer = 0;
+        self.ram[..FONTSET_SIZE].copy_from_slice(&FONTSET);
     }
 
     // Pushes a value to the stack
@@ -514,8 +515,8 @@ impl CPU {
         let vx = self.v_registers[x as usize] as f32;
 
         let hundreds = (vx / 100.).floor() as u8;
-        let tens = (vx / 10.).floor() as u8;
-        let units = (vx /10.).floor() as u8;
+        let tens = ((vx / 10.) % 10.).floor() as u8;
+        let units = (vx % 10.).floor() as u8;
 
         self.ram[self.i_register as usize] = hundreds;
         self.ram[(self.i_register + 1) as usize] = tens;
