@@ -208,7 +208,7 @@ impl CPU {
             (8, _, _, 7) => self.sub_vx(digits.1, digits.2),
 
             // Binary left shift VX
-            (8, _, _, 8) => self.bls(digits.1),
+            (8, _, _, 0xE) => self.bls(digits.1),
 
             // Skip a line if VX != VY
             (9, _, _, 0) => self.skip_neq_vy(digits.1, digits.2),
@@ -258,7 +258,7 @@ impl CPU {
             // Load V0 -> VX from ram
             (0xF, _, 6, 5) => self.load_v(digits.1),
 
-            (_, _, _, _) => unimplemented!("Unimplemented opcode: {}", opcode),
+            (_, _, _, _) => unimplemented!("Unimplemented opcode: {:?}", digits),
         }
     }
 
