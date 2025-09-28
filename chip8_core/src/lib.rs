@@ -11,50 +11,50 @@ const START_ADDRESS: u16 = 0x200;
 const FONTSET_SIZE: usize = 80;
 
 const FONTSET: [u8; FONTSET_SIZE] = [
-0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-0x20, 0x60, 0x20, 0x20, 0x70, // 1
-0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+    0x20, 0x60, 0x20, 0x20, 0x70, // 1
+    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+    0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 ];
 
 pub struct CPU {
-    program_counter: u16,                           // Program counter
-    ram: [u8; RAM_SIZE],                            // Ram
-    screen: [bool; SCREEN_WIDTH * SCREEN_HEIGHT],   // Display
-    v_registers: [u8; NUM_REGS],                    // V registers
-    i_register: u16,                                // I register
-    stack_pointer: u16,                             // Pointer to the top of the stack
-    stack: [u16; STACK_SIZE],                       // Stack
-    keypad: [bool; NUM_KEYS],                       // Keys pressed
-    delay_timer: u8,                                // Delay timer
-    sound_timer: u8,                                // Sound timer
+    program_counter: u16,                         // Program counter
+    ram: [u8; RAM_SIZE],                          // Ram
+    screen: [bool; SCREEN_WIDTH * SCREEN_HEIGHT], // Display
+    v_registers: [u8; NUM_REGS],                  // V registers
+    i_register: u16,                              // I register
+    stack_pointer: u16,                           // Pointer to the top of the stack
+    stack: [u16; STACK_SIZE],                     // Stack
+    keypad: [bool; NUM_KEYS],                     // Keys pressed
+    delay_timer: u8,                              // Delay timer
+    sound_timer: u8,                              // Sound timer
 }
 
 impl CPU {
     pub fn new() -> CPU {
-        let mut new_cpu = CPU { 
+        let mut new_cpu = CPU {
             program_counter: START_ADDRESS,
             ram: [0; RAM_SIZE],
             screen: [false; SCREEN_WIDTH * SCREEN_HEIGHT],
             v_registers: [0; NUM_REGS],
-            i_register: 0, 
-            stack_pointer: 0, 
-            stack: [0; STACK_SIZE], 
-            keypad: [false; NUM_KEYS], 
-            delay_timer: 0, 
-            sound_timer: 0 
+            i_register: 0,
+            stack_pointer: 0,
+            stack: [0; STACK_SIZE],
+            keypad: [false; NUM_KEYS],
+            delay_timer: 0,
+            sound_timer: 0,
         };
 
         // Loads the fontset into ram
@@ -105,7 +105,7 @@ impl CPU {
         let end = (START_ADDRESS as usize) + data.len();
         self.ram[start..end].copy_from_slice(data);
     }
-    
+
     pub fn tick_timers(&mut self) {
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
@@ -115,14 +115,14 @@ impl CPU {
             if self.sound_timer == 1 {
                 // BEEP
             }
-            self.sound_timer -= 1; 
+            self.sound_timer -= 1;
         }
     }
 
     pub fn tick(&mut self) {
         // Fetch
         let opcode = self.fetch();
-        // Decode 
+        // Decode
         let digits = self.decode(opcode);
         // Execute
         self.execute(digits, opcode);
@@ -142,13 +142,13 @@ impl CPU {
         (first_half << 8) | second_half
     }
 
-    // Decodes opcode by seperating it out into induvidual digits
-    fn decode(&mut self, opcode: u16) -> (u16, u16, u16, u16){
+    // Decodes opcode by separating it out into induvidual digits
+    fn decode(&mut self, opcode: u16) -> (u16, u16, u16, u16) {
         (
             (opcode & 0xF000) >> 12,
             (opcode & 0x0F00) >> 8,
             (opcode & 0x00F0) >> 4,
-            (opcode & 0x000F)
+            (opcode & 0x000F),
         )
     }
 
@@ -255,7 +255,7 @@ impl CPU {
 
             // Store V0 -> VX in ram
             (0xF, _, 5, 5) => self.store_v(digits.1),
-            
+
             // Load V0 -> VX from ram
             (0xF, _, 6, 5) => self.load_v(digits.1),
 
@@ -305,7 +305,7 @@ impl CPU {
 
     // Skips a line if VX == VY
     fn skip_eq_vy(&mut self, x: u16, y: u16) {
-        if self.v_registers[x as usize] == self.v_registers[y as usize]{
+        if self.v_registers[x as usize] == self.v_registers[y as usize] {
             self.program_counter += 2
         }
     }
@@ -319,7 +319,7 @@ impl CPU {
     // Increments VX by NN
     fn incr_nn(&mut self, x: u16, opcode: u16) {
         let increment_by = (opcode & 0xFF) as u8;
-        self.v_registers[x as usize] =  self.v_registers[x as usize].wrapping_add(increment_by);
+        self.v_registers[x as usize] = self.v_registers[x as usize].wrapping_add(increment_by);
     }
 
     // Sets VX to VY
@@ -344,16 +344,18 @@ impl CPU {
 
     // Increments VX by VY
     fn incr_vy(&mut self, x: u16, y: u16) {
-        let (new_vx, carry) = self.v_registers[x as usize].overflowing_add(self.v_registers[y as usize]);
+        let (new_vx, carry) =
+            self.v_registers[x as usize].overflowing_add(self.v_registers[y as usize]);
         let new_vf = if carry { 1 } else { 0 };
 
         self.v_registers[x as usize] = new_vx;
         self.v_registers[0xF] = new_vf;
     }
-    
+
     // Decreases VX by VY
     fn decr_vy(&mut self, x: u16, y: u16) {
-        let (new_vx, borrow) = self.v_registers[x as usize].overflowing_sub(self.v_registers[y as usize]);
+        let (new_vx, borrow) =
+            self.v_registers[x as usize].overflowing_sub(self.v_registers[y as usize]);
         let new_vf = if borrow { 0 } else { 1 };
 
         self.v_registers[x as usize] = new_vx;
@@ -369,7 +371,8 @@ impl CPU {
 
     // Sets VX to be VY - VX
     fn sub_vx(&mut self, x: u16, y: u16) {
-        let (new_vx, borrow) = self.v_registers[y as usize].overflowing_sub(self.v_registers[x as usize]);
+        let (new_vx, borrow) =
+            self.v_registers[y as usize].overflowing_sub(self.v_registers[x as usize]);
         let new_vf = if borrow { 0 } else { 1 };
 
         self.v_registers[x as usize] = new_vx;
@@ -385,7 +388,7 @@ impl CPU {
 
     // Skips a line if VX != VY
     fn skip_neq_vy(&mut self, x: u16, y: u16) {
-        if self.v_registers[x as usize] != self.v_registers[y as usize]{
+        if self.v_registers[x as usize] != self.v_registers[y as usize] {
             self.program_counter += 2
         }
     }
@@ -425,7 +428,7 @@ impl CPU {
 
         for y_line in 0..num_rows {
             // Get rows memory address
-            let addr =  self.i_register + y_line as u16;
+            let addr = self.i_register + y_line as u16;
             let pixels = self.ram[addr as usize];
 
             // Iterates through each column in the row
@@ -448,7 +451,6 @@ impl CPU {
         } else {
             self.v_registers[0xF] = 0;
         }
-
     }
 
     // Skips if a key is pressed
@@ -529,7 +531,7 @@ impl CPU {
         for index in 0..=x as usize {
             self.ram[i + index] = self.v_registers[index];
         }
-    } 
+    }
 
     // Loads V0 -> VX from ram
     fn load_v(&mut self, x: u16) {
